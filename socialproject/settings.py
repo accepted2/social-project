@@ -27,6 +27,7 @@ SECRET_KEY = "django-insecure-rwi^+v+jgwyjy@fwhmt3q1y+cu#5&uttpz4%8yc9m19v88i86^
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["https://social-project-0woz.onrender.com"]
 
 
 # Application definition
