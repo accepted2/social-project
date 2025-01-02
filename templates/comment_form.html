@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h1>Post: {{ post.title }}</h1>
+    <p>{{ post.caption }}</p>
+    <img src="{{ post.image.url }}" alt="Image" style="width: 100%; max-width: 500px;">
+    <h2>Comments:</h2>
+    <ul>
+        {% for comment in comments %}
+        <li><strong>{{ comment.created|date:"d M Y H:i" }}</strong>: {{ comment.body }}</li>
+        {% empty %}
+        <li>No comments yet</li>
+        {% endfor %}
+    </ul>
+    <h3>Add comment:</h3>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Comment</button>
+    </form>
+</div>
+{% endblock %}

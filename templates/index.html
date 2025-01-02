@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-5" style="display: flex; justify-content: center; align-items: flex-start;">
+    <div
+        style="width: 100%; max-width: 1200px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
+        {% for post in all_posts %}
+        <div class="card text-white bg-info mb-3" style="width: 18rem; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: left;">
+                <div>
+                    {% if post.user.profile.photo %}
+                    <img src="{{ post.user.profile.photo.url }}" style="width: 50px; height: 40px; border-radius: 50%;">
+                    {% else %}
+                    <img src="{{ 'images/default_item_logo.jpg' }}"
+                        style="width: 50px; height: 40px; border-radius: 50%;">
+                    {% endif %}
+                </div>
+                <div style="margin-top: 2%; padding-left: 10px;">{{ post.user.username }}</div>
+            </div>
+            <img class="card-img-top" src="{{ post.image.url }}" alt="Card image cap"
+                style="width: 100%; height: 200px; object-fit: cover; margin-top: 4px;">
+            <div class="card-body" style="flex-grow: 1;">
+                <p class="card-text" style="font-weight: bold;">{{ post.title }}</p>
+                <p class="card-text short-description"
+                    style="display: block; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
+                    {{ post.caption }}
+                </p>
+            </div>
+            <div class="row" style="margin-top: auto; display: flex; justify-content: space-between;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                    <a href="#" class="btn btn-like" id="{{ post.id }}" data-post-id="{{ post.id }}"
+                        style="display: flex; align-items: center; justify-content: center; margin-right: 4px; border:0px">
+                        <i class="fa-solid fa-heart" id="like-icon-{{ post.id }}" style="font-size: 20px;"></i>
+                        <span class="like-count" id="like-count-{{ post.id }}" {% if post.likes_count == 0 %}
+                            style="display: none;" {% endif %}>
+                            {{ post.likes_count }}
+                        </span>
+                    </a>
+                    <a href="{% url 'comment_post' post.id %}" class="btn btn-outline-light btn-comment"
+                        data-post-id="{{post.id}}"
+                        style="border-radius: 50%; width: 35px; height: 30px; display: flex; align-items: center; justify-content: center; margin-right: 4px;">
+                        <i class="fa-solid fa-comment"></i> <span class="comment" id="comment-count-{{ post.id }}"
+                            {% if post.comments_count == 0 %}
+                            style="display: none;" {% endif %}>
+                            {{ post.comments_count }}
+                        </span>
+                    </a>
+                    <a href="#" class="btn btn-outline-light"
+                        style="border-radius: 50%; width: 35px; height: 30px; display: flex; align-items: center; justify-content: center; margin-right: 4px;">
+                        <i class="fa-solid fa-share"></i>
+                    </a>
+                </div>
+            </div>
+            {% if post.user == request.user %}
+            <div class="btn-group" style="display: flex; margin-top: auto;">
+                <a href="{% url 'edit_post' post.id %}" class="btn btn-warning"
+                    style="flex: 1; margin-right: 5px;">Edit</a>
+                <a href="{% url 'delete_post' post.id %}" class="btn btn-danger" style="flex: 1;">Delete</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<script type="text/javascript">
+    window.CSRF_TOKEN = "{{ csrf_token }}";
+
+    // Загружаем состояния лайков из localStorage
+    const likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '{}');
+    const likeCounts = JSON.parse(localStorage.getItem('likeCounts') || '{}'); // Сохраняем количество лайков
+
+
+    // При загрузке страницы, восстанавливаем состояние лайков и их количество из localStorage
+    $(document).ready(function() {
+        $('.btn-like').each(function() {
+            let post_id = $(this).data('post-id');
+            const likeIcon = document.getElementById(`like-icon-${post_id}`);
+            const likeCountElement = document.getElementById(`like-count-${post_id}`);
+
+            // Устанавливаем цвет иконки в соответствии с состоянием в localStorage
+            if (likedPosts[post_id]) {
+                likeIcon.style.color = 'red';
+            } else {
+                likeIcon.style.color = 'grey';
+            }
+
+            // Устанавливаем количество лайков из localStorage
+            if (likeCountElement && likeCounts[post_id] !== undefined) {
+                likeCountElement.textContent = likeCounts[post_id];
+            }
+        });
+    });
+
+    $(document).on('click', '.btn-like', function(event) {
+        event.preventDefault();
+        let post_id = $(this).data('post-id'); // Получаем post_id из атрибута data-post-id
+        const likeIcon = document.getElementById(`like-icon-${post_id}`);
+        const likeCountElement = document.getElementById(
+            `like-count-${post_id}`); // Элемент для отображения количества лайков
+
+        // Изменяем цвет иконки локально
+        if (likeIcon.style.color === 'red') {
+            likeIcon.style.color = 'grey'; // Если иконка красная, меняем на серую
+            likedPosts[post_id] = false; // Обновляем состояние в localStorage
+            let currentLikes = parseInt(likeCountElement.textContent);
+            likeCountElement.textContent = currentLikes - 1;
+        } else {
+            likeIcon.style.color = 'red'; // Если иконка серая, меняем на красную
+            likedPosts[post_id] = true; // Обновляем состояние в localStorage
+            let currentLikes = parseInt(likeCountElement.textContent);
+            likeCountElement.textContent = currentLikes + 1;
+        }
+
+        // Сохраняем обновленное состояние лайков в localStorage
+        localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+
+        // Отправляем AJAX-запрос для обновления на сервере
+        $.ajax({
+            method: 'POST',
+            url: '/like/', // Ваш URL обработчика лайков
+            data: {
+                post_id: post_id,
+                csrfmiddlewaretoken: window.CSRF_TOKEN
+            },
+            success: function(data) {
+                // После получения ответа от сервера
+                if (data.error) {
+                    console.error('Error:', data.error);
+                    return;
+                }
+
+                // Обновляем количество лайков в localStorage
+                likeCounts[post_id] = data.likes_count;
+                localStorage.setItem('likeCounts', JSON.stringify(likeCounts));
+
+                // Меняем цвет иконки и обновляем количество лайков
+                likeIcon.style.color = data.liked ? 'red' : 'grey';
+                if (data.likes_count > 0) {
+                    likeCountElement.textContent = data.likes_count;
+                    likeCountElement.style.display =
+                        'inline'; // Показываем, если больше 0
+                } else {
+                    likeCountElement.style.display = 'none'; // Скрываем, если 0
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+            }
+        });
+    });
+</script>
+{% endblock %}
